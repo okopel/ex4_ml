@@ -28,10 +28,10 @@ class MyNet(nn.Module):
         self._conv4 = nn.Conv2d(in_channels=100, out_channels=200, kernel_size=5, stride=1, padding=2)
         self._conv5 = nn.Conv2d(in_channels=200, out_channels=400, kernel_size=5, stride=1, padding=2)
 
-        self._dropout = nn.Dropout(p=0.5)
-        self._l1 = nn.Linear(400 * 5 * 3, 30)
+        self._dropout = nn.Dropout(p=dropOut)
+        self._l1 = nn.Linear(linearSize, classes)
         self._loss_function = nn.CrossEntropyLoss()
-        self._optimizer = optim.Adam(self.parameters(), lr=0.0005)
+        self._optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
     def forward(self, x):
         x = Variable(x)
