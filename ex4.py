@@ -9,10 +9,8 @@ import torch.cuda
 import torch.utils.data
 import tqdm
 from torch.autograd import Variable
-
 from gcommand_loader import GCommandLoader
 import matplotlib.pyplot as plt
-
 import torch.nn.functional as functional
 import torch.cuda
 from torch import nn, optim
@@ -22,12 +20,15 @@ from torch.autograd import Variable
 class MyNet(nn.Module):
     def __init__(self, learning_rate, dropOut, classes, linearSize):
         super(MyNet, self).__init__()
-        self._conv1 = nn.Conv2d(in_channels=1, out_channels=20, kernel_size=5, stride=1, padding=2)
-        self._conv2 = nn.Conv2d(in_channels=20, out_channels=50, kernel_size=5, stride=1, padding=2)
-        self._conv3 = nn.Conv2d(in_channels=50, out_channels=100, kernel_size=5, stride=1, padding=2)
-        self._conv4 = nn.Conv2d(in_channels=100, out_channels=200, kernel_size=5, stride=1, padding=2)
-        self._conv5 = nn.Conv2d(in_channels=200, out_channels=400, kernel_size=5, stride=1, padding=2)
 
+        self.layer1 = nn.Sequential(nn.Conv2d(1, 32, kernel_size=5, stride=1, padding=2), nn.ReLU(),
+                                    nn.MaxPool2d(kernel_size=2, stride=2))
+        self.layer2 = nn.Sequential(nn.Conv2d(32, 64, kernel_size=5, stride=1, padding=2), nn.ReLU(),
+                                    nn.MaxPool2d(kernel_size=2, stride=2))
+        self.layer3 = nn.Sequential(nn.Conv2d(64, 128, kernel_size=5, stride=1, padding=2), nn.ReLU(),
+                                    nn.MaxPool2d(kernel_size=2, stride=2))
+        self.layer4 = nn.Sequential(nn.Conv2d(128, 256, kernel_size=5, stride=1, padding=2), nn.ReLU(),
+                                    nn.MaxPool2d(kernel_size=2, stride=2))
         self._dropout = nn.Dropout(p=dropOut)
         self._l1 = nn.Linear(linearSize, classes)
         self._loss_function = nn.CrossEntropyLoss()
@@ -37,38 +38,25 @@ class MyNet(nn.Module):
         x = Variable(x)
         if torch.cuda.is_available():
             x = x.cuda()
-        x = self._conv1(x)
-        x = functional.relu(x)
-        x = functional.max_pool2d(x, kernel_size=2, stride=2)
+        x = self.layer1(x)
         x = self._dropout(x)
-        x = self._conv2(x)
-        x = functional.relu(x)
-        x = functional.max_pool2d(x, kernel_size=2, stride=2)
+        x = self.layer2(x)
         x = self._dropout(x)
-        x = self._conv3(x)
-        x = functional.relu(x)
-        x = functional.max_pool2d(x, kernel_size=2, stride=2)
+        x = self.layer3(x)
         x = self._dropout(x)
-        x = self._conv4(x)
-        x = functional.relu(x)
-        x = functional.max_pool2d(x, kernel_size=2, stride=2)
-        x = self._dropout(x)
-        x = self._conv5(x)
-        x = functional.relu(x)
-        x = functional.max_pool2d(x, kernel_size=2, stride=2)
+        x = self.layer4(x)
         x = self._dropout(x)
         x = x.view(x.size(0), -1)
         return self._l1(x)
 
-    def train_example(self, vectors_batch, labels_batch):
-        vectors_batch = Variable(vectors_batch)
-        labels_batch = Variable(labels_batch)
+    def train_exam(self, vec_batch, label_batch):
+        vec_batch = Variable(vec_batch)
+        label_batch = Variable(label_batch)
         if torch.cuda.is_available():
-            vectors_batch = vectors_batch.cuda()
-            labels_batch = labels_batch.cuda()
+            vec_batch = vec_batch.cuda()
+            label_batch = label_batch.cuda()
         self._optimizer.zero_grad()
-        ys = self(vectors_batch)
-        loss = self._loss_function(ys, labels_batch)
+        loss = self._loss_function(self(vec_batch), label_batch)
         loss.backward()
         self._optimizer.step()
 
@@ -112,18 +100,17 @@ class Ex4:
         for i in range(self.epoch):
             print("{}/{}".format(i + 1, self.epoch))
             model.train()
-            for vector_batch, label_batch in tqdm.tqdm(train_loader, total=len(train_loader),
-                                                       unit_scale=self.batch_train):
-                model.train_example(vector_batch, label_batch)
+            for vec_batch, lab_batch in tqdm.tqdm(train_loader, total=len(train_loader), unit_scale=self.batch_train):
+                model.train_exam(vec_batch, lab_batch)
             model.eval()
-            print(self.evaluate(model, train_loader))
-            print(self.evaluate(model, validation_loader))
+            print(self.valuate(model, train_loader))
+            print(self.valuate(model, validation_loader))
 
         model.eval()
         all_predictions = []
-        for vectors_batch, _ in test_loader:
-            outputs = model(vectors_batch)
-            _, predictions = torch.max(outputs.data, 1)
+        for vec_batch, _ in test_loader:
+            output = model(vec_batch)
+            _, predictions = torch.max(output.data, 1)
             all_predictions.extend(predictions)
 
         with open("test_y", "w") as f:
@@ -138,7 +125,7 @@ class Ex4:
         plt.legend()
         plt.show()
 
-    def evaluate(self, model, loader):
+    def valuate(self, model, loader):
         total = 0
         correct = 0
 
@@ -155,6 +142,6 @@ class Ex4:
 
 
 if __name__ == '__main__':
-    Ex4(batch_train=100, batch_test=100, epoch=20, acc_check=5000, lr=0.0005, dropout=0.5, linearSize=400 * 5 * 3,
-        classes=30)
-    Ex4.main()
+    ex4 = Ex4(batch_train=100, batch_test=100, epoch=20, acc_check=5000, lr=0.0005, dropout=0.5, linearSize=15360,
+              classes=30)
+    ex4.main()
