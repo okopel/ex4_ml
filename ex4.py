@@ -11,6 +11,7 @@ import tqdm
 from torch.autograd import Variable
 
 from gcommand_loader import GCommandLoader
+import matplotlib.pyplot as plt
 
 import torch.nn.functional as functional
 import torch.cuda
@@ -19,7 +20,7 @@ from torch.autograd import Variable
 
 
 class MyNet(nn.Module):
-    def __init__(self):
+    def __init__(self, learning_rate, dropOut, classes, linearSize):
         super(MyNet, self).__init__()
         self._conv1 = nn.Conv2d(in_channels=1, out_channels=20, kernel_size=5, stride=1, padding=2)
         self._conv2 = nn.Conv2d(in_channels=20, out_channels=50, kernel_size=5, stride=1, padding=2)
@@ -73,14 +74,25 @@ class MyNet(nn.Module):
 
 
 class Ex4:
-    def __init__(self, batch_train, batch_test, epoch, acc_check):
+    def __init__(self, batch_train, batch_test, epoch, acc_check, lr, dropout, linearSize, classes):
         self.batch_train = batch_train
         self.batch_test = batch_test
         self.epoch = epoch
         self.acc_check = acc_check
+        self.learning_rate = lr
+        self.dropout = dropout
+        self.linear_size = linearSize
+        self.classes = classes
 
     def main(self):
-        model = MyNet()
+        plt.title('Loss calculating')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+
+        loss_train_list = []
+        loss_valid_list = []
+        model = MyNet(learning_rate=self.learning_rate, dropOut=self.dropout, classes=self.classes,
+                      linearSize=self.linear_size)
         if torch.cuda.is_available():
             model.cuda()
 
@@ -118,6 +130,13 @@ class Ex4:
             for spect, prediction in zip(gc_test_loader.spects, all_predictions):
                 f.write("{}, {}".format(os.path.basename(spect[0]), str(prediction.item())))
                 f.write(os.linesep)
+                loss_train_list.append(prediction.item())
+                loss_valid_list.append(os.linesep)
+        plt.plot(loss_train_list, label="train")
+        plt.plot(loss_valid_list, label="valid")
+        plt.xticks(range(1, self.epoch))
+        plt.legend()
+        plt.show()
 
     def evaluate(self, model, loader):
         total = 0
@@ -136,5 +155,6 @@ class Ex4:
 
 
 if __name__ == '__main__':
-    Ex4(batch_train=100, batch_test=100, epoch=20, acc_check=5000)
+    Ex4(batch_train=100, batch_test=100, epoch=20, acc_check=5000, lr=0.0005, dropout=0.5, linearSize=400 * 5 * 3,
+        classes=30)
     Ex4.main()
