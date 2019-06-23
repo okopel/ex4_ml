@@ -142,6 +142,6 @@ class Ex4:
 
 
 if __name__ == '__main__':
-    ex4 = Ex4(batch_train=100, batch_test=100, epoch=20, acc_check=5000, lr=0.0005, dropout=0.5, linearSize=15360,
+    ex4 = Ex4(batch_train=100, batch_test=100, epoch=10, acc_check=5000, lr=0.0005, dropout=0.5, linearSize=15360,
               classes=30)
     ex4.main()
